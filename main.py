@@ -1,5 +1,4 @@
-import os
-import threading
+import subprocess
 import time
 import tkinter as tk
 
@@ -29,6 +28,17 @@ class Button(tk.Label):
         self.bind('<Button-1>', command)
         self.bind('<Enter>', lambda x: self.config(background='grey'))
         self.bind('<Leave>', lambda x: self.config(background='black'))
+
+
+class CmdButton(Button):
+    """
+    运行命令的按钮
+    """
+
+    def __init__(self, master, text, cmdline, x, y):
+        self.cmdline = cmdline
+        super().__init__(master, text, lambda x: subprocess.Popen(self.cmdline))
+        self.place(x=WINDOW_WIDTH//2*x, y=BUTTON_HEIGHT*y, width=WINDOW_WIDTH//2, height=BUTTON_HEIGHT)
 
 
 class Window(tk.Tk):
@@ -68,7 +78,7 @@ class Window(tk.Tk):
 
         # 添加功能菜单内容
         for i, (name, command) in enumerate(TOOL_LIST):
-            Button(master=self.tool_frame, text=name, command=lambda x: threading.Thread(target=lambda: os.system(command)).start()).place(x=WINDOW_WIDTH//2*(i % 2), y=BUTTON_HEIGHT*(i//2), width=WINDOW_WIDTH//2, height=BUTTON_HEIGHT)
+            CmdButton(self.tool_frame, name, command, i % 2, i//2)
 
     def get_time_memory(self):  # 获取时间和内存
         mem = psutil.virtual_memory()
