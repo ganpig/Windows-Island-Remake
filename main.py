@@ -64,7 +64,7 @@ class Window(tk.Tk):
 
         # 功能菜单
         self.tool_frame = tk.Frame(self, bg='black')
-        self.tool_frame.place(x=0, y=BUTTON_HEIGHT*2, width=WINDOW_WIDTH, height=len(TOOL_LIST)//2*BUTTON_HEIGHT)
+        self.tool_frame.place(x=0, y=BUTTON_HEIGHT*2, width=WINDOW_WIDTH, height=(len(TOOL_LIST)+1)//2*BUTTON_HEIGHT)
 
         # 添加功能菜单内容
         for i, (name, command) in enumerate(TOOL_LIST):
