@@ -1,9 +1,9 @@
-import tkinter as tk
-import time
 import os
 import threading
-import psutil
+import time
+import tkinter as tk
 
+import psutil
 
 WINDOW_WIDTH = 200
 BUTTON_HEIGHT = 30
