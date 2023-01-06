@@ -1,12 +1,17 @@
 import subprocess
 import time
 import tkinter as tk
+from urllib.request import urlopen
+import json
+import threading
 
+import easygui
 import psutil
 
 WINDOW_WIDTH = 200
 BUTTON_HEIGHT = 30
 SMALL_BUTTON_WIDTH = 30
+BILI_INTERVAL = 10
 TOOL_LIST = [
     ('命令提示符', 'cmd.exe'),
     ('截图工具', 'snippingtool.exe'),
@@ -32,13 +37,50 @@ class Button(tk.Label):
 
 class CmdButton(Button):
     """
-    运行命令的按钮
+    运行系统命令的按钮
     """
 
     def __init__(self, master, text, cmdline, x, y):
         self.cmdline = cmdline
         super().__init__(master, text, lambda x: subprocess.Popen(self.cmdline))
         self.place(x=WINDOW_WIDTH//2*x, y=BUTTON_HEIGHT*y, width=WINDOW_WIDTH//2, height=BUTTON_HEIGHT)
+
+
+class BiliButton(Button):
+    """
+    控制B站视频监视的按钮
+    """
+
+    def __init__(self, master):
+        self.state = False
+        self.last_time = 0
+        super().__init__(master, '打开B站视频监视', lambda x: self.switch())
+        self.place(width=WINDOW_WIDTH, height=BUTTON_HEIGHT)
+        threading.Thread(target=self.refresh).start()
+
+    def switch(self):
+        if self.state:
+            super().config(text='打开B站视频监视')
+            self.state = False
+        else:
+            self.bvid = easygui.enterbox('请输入BV号', 'B站视频监视')
+            if self.bvid:
+                super().config(text='关闭B站视频监视')
+                self.text = '\nLoading...'
+                self.state = True
+
+    def refresh(self):
+        while True:
+            if self.state:
+                stat = json.loads(urlopen(f'https://api.bilibili.com/x/web-interface/view?bvid={self.bvid}').read().decode())['data']['stat']
+                self.text = f'\n{stat["view"]}播 {stat["danmaku"]}弹 {stat["like"]}赞 {stat["reply"]}评'
+            time.sleep(10)
+
+    def get_text(self):
+        if self.state:
+            return self.text
+        else:
+            return ''
 
 
 class Window(tk.Tk):
@@ -74,11 +116,14 @@ class Window(tk.Tk):
 
         # 功能菜单
         self.tool_frame = tk.Frame(self, bg='black')
-        self.tool_frame.place(x=0, y=BUTTON_HEIGHT*2, width=WINDOW_WIDTH, height=(len(TOOL_LIST)+1)//2*BUTTON_HEIGHT)
+        self.tool_frame.place(x=0, y=BUTTON_HEIGHT*2, width=WINDOW_WIDTH, height=((len(TOOL_LIST)+1)//2+1)*BUTTON_HEIGHT)
+
+        # B站视频监视控制按钮
+        self.bili_button = BiliButton(self.tool_frame)
 
         # 添加功能菜单内容
         for i, (name, command) in enumerate(TOOL_LIST):
-            CmdButton(self.tool_frame, name, command, i % 2, i//2)
+            CmdButton(self.tool_frame, name, command, i % 2, i//2+1)
 
         self.after(10, self.update_state)
 
@@ -86,7 +131,7 @@ class Window(tk.Tk):
         mem = psutil.virtual_memory()
         total = float(mem.total)/1024**3
         used = float(mem.used)/1024**3
-        self.time_memory_label.config(text=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())+f'\n内存: {used:.2f}G / {total:.2f}G')  # 更改显示的时间文字
+        self.time_memory_label.config(text=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())+f'\n内存: {used:.2f}G / {total:.2f}G'+self.bili_button.get_text())  # 更改显示的文字
         now_time = time.time()
         animation_prog = (min(0.3, now_time-self.extend_time) if self.extended else max(0, 0.3-(now_time-self.extend_time)))/0.3
         self.geometry(f'{WINDOW_WIDTH}x{int(BUTTON_HEIGHT*2+animation_prog*self.tool_frame.winfo_height())}+{self.pos_x}+{self.pos_y}')
